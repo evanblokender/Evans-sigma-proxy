@@ -449,7 +449,7 @@
 <!-- Scramjet deps -->
 <script src="/baremux/index.js"></script>
 <script src="/epoxy/index.js"></script>
-<script src="/scram/scramjet.controller.js"></script>
+<script src="/scram/scramjet.all.js"></script>
 
 <script>
 // ──────────────────────────────────────────────
@@ -458,11 +458,9 @@
 const scramjet = new ScramjetController({
   prefix: "/scramjet/",
   files: {
-    wasm:   "/scram/scramjet.wasm.wasm",
-    worker: "/scram/scramjet.worker.js",
-    client: "/scram/scramjet.client.js",
-    shared: "/scram/scramjet.shared.js",
-    sync:   "/scram/scramjet.sync.js",
+    wasm:    "/scram/scramjet.wasm.wasm",
+    all:     "/scram/scramjet.all.js",
+    service: "/scram/scramjet.service.js",
   },
 });
 

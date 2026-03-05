@@ -4,7 +4,9 @@ const path = require("path");
 
 let scramjetPath, baremuxPath, epoxyPath, libcurlPath;
 try {
-  scramjetPath = require("@mercuryworkshop/scramjet/path").publicPath;
+  // new CI build exports scramjetPath
+  const sj = require("@mercuryworkshop/scramjet/path");
+  scramjetPath = sj.scramjetPath || sj.publicPath;
   baremuxPath  = require("@mercuryworkshop/bare-mux/node").baremuxPath;
   epoxyPath    = require("@mercuryworkshop/epoxy-transport").epoxyPath;
   libcurlPath  = require("@mercuryworkshop/libcurl-transport").libcurlPath;
