@@ -1,0 +1,20 @@
+{
+  "name": "evans-sigma-proxy",
+  "version": "1.0.0",
+  "description": "Evan's Sigma Proxy - Browser UI powered by Scramjet",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@mercuryworkshop/bare-mux": "^2.0.4",
+    "@mercuryworkshop/epoxy-transport": "^2.1.1",
+    "@mercuryworkshop/libcurl-transport": "^1.0.4",
+    "@mercuryworkshop/scramjet": "^2.0.0",
+    "express": "^4.18.2",
+    "wisp-server-node": "^1.1.9"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
