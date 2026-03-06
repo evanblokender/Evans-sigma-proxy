@@ -659,15 +659,15 @@ function _loadUrl(tabId, url){
     }
   }, 12000);
 
-  // Use scramjet.go(iframe, url) — the correct Scramjet 2.x API
+  // Correct Scramjet 2.x API: encodeUrl() then set as iframe src
   ldrTxt.textContent=`📡 Fetching ${new URL(url).hostname}...`;
   setStatus(`📡 Fetching: ${url}`);
   try {
-    scramjet.go(iframe, url);
+    iframe.src = scramjet.encodeUrl(url);
   } catch(e) {
     ldrTxt.textContent=`❌ Scramjet error: ${e.message}`;
     setStatus(`❌ Error: ${e.message}`);
-    console.error('scramjet.go error:', e);
+    console.error('scramjet.encodeUrl error:', e);
   }
 }
 
