@@ -394,8 +394,7 @@ document.addEventListener('click', e=>{
 // ═══════════════════════════════════════════
 // SCRAMJET INIT
 // ═══════════════════════════════════════════
-const { ScramjetController } = $scramjetLoadController();
-
+// ScramjetController is exposed globally by scramjet.all.js
 const scramjet = new ScramjetController({
   files: {
     wasm: "/scram/scramjet.wasm.wasm",
@@ -423,7 +422,7 @@ navigator.serviceWorker.register("/sw.js").then(reg => {
 const wispProto = location.protocol === "https:" ? "wss" : "ws";
 const wispUrl   = `${wispProto}://${location.host}/wisp/`;
 const conn = new BareMux.BareMuxConnection("/baremux/worker.js");
-conn.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+conn.setTransport("/epoxy/index.js", [{ wisp: wispUrl }]);
 
 // ═══════════════════════════════════════════
 // TAB STATE
