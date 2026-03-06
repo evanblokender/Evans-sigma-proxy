@@ -1,38 +1,56 @@
-const http = require("http");
-const express = require("express");
-const path = require("path");
-const { server: wisp } = require("@mercuryworkshop/wisp-js/server");
+import { createServer } from "http";
+import { createRequire } from "module";
+import fastify from "fastify";
+import fastifyStatic from "@fastify/static";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-let scramjetPath, baremuxPath, epoxyPath, libcurlPath;
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Resolve static asset paths from installed packages
+const scramjetPath = require.resolve("@mercuryworkshop/scramjet").replace(/\/[^/]+$/, "/");
+// bare-mux node subpath
+let baremuxPath;
 try {
-  const sj = require("@mercuryworkshop/scramjet/path");
-  scramjetPath = sj.scramjetPath || sj.publicPath;
-  baremuxPath  = require("@mercuryworkshop/bare-mux/node").baremuxPath;
-  epoxyPath    = require("@mercuryworkshop/epoxy-transport").epoxyPath;
-  libcurlPath  = require("@mercuryworkshop/libcurl-transport").libcurlPath;
-} catch (e) {
-  console.error("Proxy dep load failed:", e.message);
-  process.exit(1);
+  baremuxPath = require.resolve("@mercuryworkshop/bare-mux/node").replace(/\/[^/]+$/, "/");
+} catch {
+  baremuxPath = require.resolve("@mercuryworkshop/bare-mux").replace(/\/[^/]+$/, "/");
 }
+const libcurlPath = require.resolve("@mercuryworkshop/libcurl-transport").replace(/\/[^/]+$/, "/");
+
+// Wisp server
+const { server: wisp } = await import("@mercuryworkshop/wisp-js/server");
 
 const PORT = process.env.PORT || 8080;
-const app = express();
 
-app.use("/scram/",   express.static(scramjetPath));
-app.use("/baremux/", express.static(baremuxPath));
-app.use("/epoxy/",   express.static(epoxyPath));
-app.use("/libcurl/", express.static(libcurlPath));
-app.use(express.static(path.join(__dirname, "../public")));
-app.get("*", (_, res) => res.sendFile(path.join(__dirname, "../public/index.html")));
+const app = fastify({ logger: false });
 
-const server = http.createServer(app);
+// Serve proxy library assets
+await app.register(fastifyStatic, { root: scramjetPath,  prefix: "/scram/",   decorateReply: false });
+await app.register(fastifyStatic, { root: baremuxPath,   prefix: "/baremux/", decorateReply: false });
+await app.register(fastifyStatic, { root: libcurlPath,   prefix: "/libcurl/", decorateReply: false });
+// Serve public folder (SPA)
+await app.register(fastifyStatic, { root: join(__dirname, "../public"), prefix: "/", decorateReply: false });
 
-server.on("upgrade", (req, socket, head) => {
+// SPA fallback
+app.setNotFoundHandler((req, reply) => {
+  reply.sendFile("index.html");
+});
+
+// Start HTTP server, hand off WebSocket upgrades to Wisp
+const server = createServer(app.server ? app.server : undefined);
+
+app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+  if (err) { console.error(err); process.exit(1); }
+  console.log(`🔥 Evan's Sigma Proxy on port ${PORT}`);
+});
+
+// Hook Wisp onto the underlying Node HTTP server after fastify starts
+app.server.on("upgrade", (req, socket, head) => {
   if (req.url.startsWith("/wisp/")) {
     wisp.routeRequest(req, socket, head);
   } else {
     socket.destroy();
   }
 });
-
-server.listen(PORT, () => console.log(`🔥 Evan's Sigma Proxy on port ${PORT}`));

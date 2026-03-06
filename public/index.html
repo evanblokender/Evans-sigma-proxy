@@ -334,7 +334,7 @@
 
 <!-- Load order matters: BareMux → transport → Scramjet all -->
 <script src="/baremux/index.js"></script>
-<script src="/epoxy/index.js"></script>
+<script src="/libcurl/index.js"></script>
 <script src="/scram/scramjet.all.js"></script>
 
 <script>
@@ -419,11 +419,11 @@ navigator.serviceWorker.register("/sw.js").then(reg => {
   setStatus("SW error — try refreshing");
 });
 
-// BareMux transport
+// BareMux transport — use libcurl (the official Scramjet-App transport)
 const wispProto = location.protocol === "https:" ? "wss" : "ws";
 const wispUrl   = `${wispProto}://${location.host}/wisp/`;
 const conn = new BareMux.BareMuxConnection("/baremux/worker.js");
-conn.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+conn.setTransport("/libcurl/index.mjs", [{ wisp: wispUrl }]);
 
 // ═══════════════════════════════════════════
 // TAB STATE
