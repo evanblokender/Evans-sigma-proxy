@@ -719,6 +719,83 @@ document.addEventListener('keydown',e=>{
 });
 
 // ═══════════════════════════════════════════
+// ANTI-REDIRECT PROTECTION
+// Uses Chrome's native "Leave site?" dialog — the ONLY prompt
+// that extensions (including GoGuardian) cannot suppress or bypass.
+// Chrome requires a prior user gesture before it will show it,
+// so we arm it on the very first interaction.
+// ═══════════════════════════════════════════
+(function(){
+  let _armed = false;
+
+  function arm(){
+    if(_armed) return;
+    _armed = true;
+    // This is the ONLY correct way to trigger Chrome's native Leave/Stay dialog.
+    // Setting e.returnValue = '' tells Chrome to show its own built-in prompt.
+    // Custom text is ignored by Chrome (security policy), but the dialog still blocks.
+    window.addEventListener('beforeunload', function(e){
+      e.preventDefault();
+      e.returnValue = ''; // required for Chrome — do NOT remove this line
+      // returning a string also reinforces it for older browsers
+      return '';
+    });
+    console.log('[AntiRedirect] beforeunload armed ✓');
+  }
+
+  // ── Arm on first user gesture (Chrome requirement) ──
+  // We listen on capture phase so it fires before anything else.
+  ['click','keydown','mousedown','touchstart','pointerdown'].forEach(evt=>{
+    document.addEventListener(evt, arm, { capture:true, once:true, passive:true });
+  });
+
+  // ── Also arm immediately in case GoGuardian fires before any gesture ──
+  // (some browsers allow beforeunload without a gesture; Chrome 2024+ is stricter
+  //  but trying never hurts — worst case it just won't show the dialog)
+  arm();
+
+  // ── Block meta-refresh tags injected by extensions ──
+  const _metaObserver = new MutationObserver(mutations=>{
+    for(const m of mutations){
+      for(const node of m.addedNodes){
+        if(node.nodeName === 'META'){
+          const equiv = (node.getAttribute?.('http-equiv') || '').toLowerCase();
+          if(equiv === 'refresh'){
+            node.remove();
+            console.warn('[AntiRedirect] Blocked meta-refresh injection');
+          }
+        }
+        // Also block <script> tags injected that try to set location.href
+        // by watching for inline scripts containing redirect patterns
+        if(node.nodeName === 'SCRIPT' && !node.src){
+          const code = node.textContent || '';
+          if(/location\s*[.=]/.test(code) && /goguardian|gg-redirect|navigate/i.test(code)){
+            node.remove();
+            console.warn('[AntiRedirect] Blocked suspicious redirect script injection');
+          }
+        }
+      }
+    }
+  });
+  _metaObserver.observe(document.documentElement, { childList:true, subtree:true });
+
+  // ── Continuously re-register beforeunload in case an extension removes it ──
+  // GoGuardian may try to removeEventListener — we fight back by re-adding every second
+  setInterval(()=>{
+    if(_armed){
+      // Re-arm by toggling off/on (forces fresh listener registration)
+      window.onbeforeunload = function(e){
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      };
+    }
+  }, 800);
+
+  console.log('[AntiRedirect] Protection active ✓');
+})();
+
+// ═══════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════
 newTab();
