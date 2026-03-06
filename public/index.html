@@ -411,29 +411,27 @@ let sjFrames = {}; // tabId -> ScramjetFrame
 // Delete stale IDB first so Scramjet can recreate its 'config' store cleanly
 async function initScramjet() {
   try {
-    await new Promise((resolve, reject) => {
-      const del = indexedDB.deleteDatabase("scramjet");
-      del.onsuccess = resolve;
-      del.onerror = reject;
-      del.onblocked = resolve; // continue even if blocked
-    });
-  } catch(_) {}
-
-  try {
-    const reg = await navigator.serviceWorker.register("/sw.js");
-    console.log("SW registered:", reg.scope);
-    // Wait for SW to be active before calling init
-    await new Promise(resolve => {
-      if (reg.active) return resolve();
-      const sw = reg.installing || reg.waiting;
-      if (sw) sw.addEventListener("statechange", e => { if(e.target.state === "activated") resolve(); });
-      else resolve();
-    });
+    // Per official docs: call init() FIRST, then register SW
     await scramjet.init();
+    await navigator.serviceWorker.register("/sw.js");
     sjReady = true;
     setStatus("Scramjet ready ✓");
   } catch(err) {
     console.error("Scramjet init error:", err);
+    // IDB version mismatch — nuke the DB and retry once
+    if (err.name === "DOMException" || String(err).includes("object store")) {
+      try {
+        await new Promise(r => { const d = indexedDB.deleteDatabase("scramjet"); d.onsuccess = d.onerror = d.onblocked = r; });
+        await scramjet.init();
+        await navigator.serviceWorker.register("/sw.js");
+        sjReady = true;
+        setStatus("Scramjet ready ✓");
+        return;
+      } catch(e2) {
+        setStatus("❌ Init failed: " + e2.message);
+        return;
+      }
+    }
     setStatus("❌ Init failed: " + err.message);
   }
 }
