@@ -572,7 +572,7 @@ function navigateTo(raw, tabId){
 
 function _loadUrl(tabId, url){
   if(!sjReady){
-    setStatus("Waiting for Scramjet...");
+    setStatus("⏳ Waiting for Scramjet to initialize...");
     setTimeout(()=>_loadUrl(tabId,url), 600);
     return;
   }
@@ -580,37 +580,47 @@ function _loadUrl(tabId, url){
   const ntp=document.getElementById(`ntp-${tabId}`);
   const fw =document.getElementById(`fw-${tabId}`);
   const ldr=document.getElementById(`ldr-${tabId}`);
+  const ldrTxt=document.getElementById(`ldr-txt-${tabId}`);
   const frmContainer=document.getElementById(`fw-${tabId}`);
   if(!frmContainer)return;
 
   ntp.style.display='none';
   fw.style.display='block';
   ldr.classList.remove('hidden');
-  setStatus(`Loading: ${url}`);
 
-  // Create ScramjetFrame if it doesn't exist for this tab
+  // Step 1: show connecting
+  ldrTxt.textContent='🔗 Connecting to Wisp server...';
+  setStatus(`🔗 Connecting: ${url}`);
+
+  // Create the iframe for this tab if it doesn't exist yet
   if(!sjFrames[tabId]){
-    const sjFrame = scramjet.createFrame();
-    sjFrame.frame.style.cssText='width:100%;height:100%;border:none;background:white;position:absolute;inset:0;opacity:0;transition:opacity .2s;';
-    frmContainer.appendChild(sjFrame.frame);
-    sjFrames[tabId] = sjFrame;
-
-    sjFrame.addEventListener('urlchange', e => {
-      const t=getTab(tabId);
-      if(!t)return;
-      t.url=e.url;
-      if(tabId===activeTab) document.getElementById('addr-input').value=e.url;
-    });
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText='width:100%;height:100%;border:none;background:white;position:absolute;inset:0;opacity:0;transition:opacity .3s;';
+    frmContainer.appendChild(iframe);
+    sjFrames[tabId] = iframe;
   }
 
-  const sjFrame = sjFrames[tabId];
+  const iframe = sjFrames[tabId];
 
-  // Use a load listener approach via the underlying iframe
-  const iframe = sjFrame.frame;
-  const onLoad = () => {
+  // Remove any previous load listener
+  if(iframe._loadHandler) iframe.removeEventListener('load', iframe._loadHandler);
+
+  // Step 2: after short delay show routing status
+  setTimeout(()=>{
+    if(!ldr.classList.contains('hidden')){
+      ldrTxt.textContent=`🌐 Routing ${new URL(url).hostname} through Scramjet...`;
+      setStatus(`🌐 Routing: ${url}`);
+    }
+  }, 400);
+
+  // Step 3: on iframe load, hide loader
+  iframe._loadHandler = () => {
+    // ignore the initial about:blank load
+    try{ if(iframe.contentWindow?.location?.href === 'about:blank') return; }catch(_){}
     ldr.classList.add('hidden');
     iframe.style.opacity='1';
-    setStatus(url);
+    ldrTxt.textContent='✓ Loaded';
+    setStatus(`✓ ${url}`);
     try{
       const t=iframe.contentDocument?.title;
       if(t&&t!=='about:blank'&&t!==''){tab.title=t;renderTabBar();}
@@ -619,25 +629,42 @@ function _loadUrl(tabId, url){
       tab.icon=`https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=16`;
       renderTabBar();
     }catch(_){}
-    iframe.removeEventListener('load', onLoad);
   };
-  iframe.addEventListener('load', onLoad);
+  iframe.addEventListener('load', iframe._loadHandler);
 
-  sjFrame.go(url);
+  // Timeout fallback — if nothing loads in 12s, show error
+  clearTimeout(iframe._loadTimeout);
+  iframe._loadTimeout = setTimeout(()=>{
+    if(!ldr.classList.contains('hidden')){
+      ldrTxt.textContent='⚠️ Taking too long — site may be blocked or Wisp is down';
+      setStatus('⚠️ Load timeout');
+    }
+  }, 12000);
+
+  // Use scramjet.go(iframe, url) — the correct Scramjet 2.x API
+  ldrTxt.textContent=`📡 Fetching ${new URL(url).hostname}...`;
+  setStatus(`📡 Fetching: ${url}`);
+  try {
+    scramjet.go(iframe, url);
+  } catch(e) {
+    ldrTxt.textContent=`❌ Scramjet error: ${e.message}`;
+    setStatus(`❌ Error: ${e.message}`);
+    console.error('scramjet.go error:', e);
+  }
 }
 
 function goBack(){
-  const f=sjFrames[activeTab];
-  if(f) f.back(); 
+  const iframe=sjFrames[activeTab];
+  if(iframe) iframe.contentWindow?.history.back();
 }
 function goFwd(){
-  const f=sjFrames[activeTab];
-  if(f) f.forward();
+  const iframe=sjFrames[activeTab];
+  if(iframe) iframe.contentWindow?.history.forward();
 }
 function reloadTab(){
-  const f=sjFrames[activeTab];
+  const iframe=sjFrames[activeTab];
   const tab=getTab(activeTab);
-  if(f) f.reload();
+  if(iframe) iframe.contentWindow?.location.reload();
   else if(tab?.url) _loadUrl(tab.id,tab.url);
 }
 function goHome(){
@@ -650,8 +677,8 @@ function goHome(){
   const fw =document.getElementById(`fw-${tab.id}`);
   if(ntp)ntp.style.display='flex';
   if(fw) fw.style.display='none';
-  const f=sjFrames[tab.id];
-  if(f) f.frame.style.opacity='0';
+  const iframe=sjFrames[tab.id];
+  if(iframe) iframe.style.opacity='0';
   setStatus("Evan's Sigma Proxy");
 }
 
