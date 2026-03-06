@@ -408,16 +408,36 @@ let sjReady = false;
 let sjFrames = {}; // tabId -> ScramjetFrame
 
 // Register SW then init scramjet
-navigator.serviceWorker.register("/sw.js").then(reg => {
-  console.log("SW registered:", reg.scope);
-  return scramjet.init();
-}).then(() => {
-  sjReady = true;
-  setStatus("Scramjet ready ✓");
-}).catch(err => {
-  console.error("Scramjet init error:", err);
-  setStatus("SW error — try refreshing");
-});
+// Delete stale IDB first so Scramjet can recreate its 'config' store cleanly
+async function initScramjet() {
+  try {
+    await new Promise((resolve, reject) => {
+      const del = indexedDB.deleteDatabase("scramjet");
+      del.onsuccess = resolve;
+      del.onerror = reject;
+      del.onblocked = resolve; // continue even if blocked
+    });
+  } catch(_) {}
+
+  try {
+    const reg = await navigator.serviceWorker.register("/sw.js");
+    console.log("SW registered:", reg.scope);
+    // Wait for SW to be active before calling init
+    await new Promise(resolve => {
+      if (reg.active) return resolve();
+      const sw = reg.installing || reg.waiting;
+      if (sw) sw.addEventListener("statechange", e => { if(e.target.state === "activated") resolve(); });
+      else resolve();
+    });
+    await scramjet.init();
+    sjReady = true;
+    setStatus("Scramjet ready ✓");
+  } catch(err) {
+    console.error("Scramjet init error:", err);
+    setStatus("❌ Init failed: " + err.message);
+  }
+}
+initScramjet();
 
 // BareMux transport
 const wispProto = location.protocol === "https:" ? "wss" : "ws";
