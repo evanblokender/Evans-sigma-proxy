@@ -405,6 +405,7 @@ const scramjet = new ScramjetController({
 });
 
 let sjReady = false;
+let sjFrames = {}; // tabId -> ScramjetFrame
 
 // Register SW then init scramjet
 navigator.serviceWorker.register("/sw.js").then(reg => {
@@ -532,9 +533,7 @@ function _createTabDOM(id){
         <div class="galaxy-spinner"></div>
         <p id="ldr-txt-${id}">Routing through Scramjet...</p>
       </div>
-      <iframe class="proxy-frame" id="frm-${id}"
-        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation"
-      ></iframe>
+      <!-- ScramjetFrame iframe injected here dynamically -->
     </div>`;
   content.appendChild(w);
 }
@@ -581,60 +580,65 @@ function _loadUrl(tabId, url){
   const ntp=document.getElementById(`ntp-${tabId}`);
   const fw =document.getElementById(`fw-${tabId}`);
   const ldr=document.getElementById(`ldr-${tabId}`);
-  const frm=document.getElementById(`frm-${tabId}`);
-  if(!frm)return;
+  const frmContainer=document.getElementById(`fw-${tabId}`);
+  if(!frmContainer)return;
 
   ntp.style.display='none';
   fw.style.display='block';
   ldr.classList.remove('hidden');
-  frm.style.opacity='0';
   setStatus(`Loading: ${url}`);
 
-  // Use scramjet.encodeUrl to get the proxied URL, set on iframe src
-  let encoded;
-  try{ encoded=scramjet.encodeUrl(url); }
-  catch(e){ console.error("encodeUrl failed:",e); setStatus("Encode error: "+e.message); return; }
+  // Create ScramjetFrame if it doesn't exist for this tab
+  if(!sjFrames[tabId]){
+    const sjFrame = scramjet.createFrame();
+    sjFrame.frame.style.cssText='width:100%;height:100%;border:none;background:white;position:absolute;inset:0;opacity:0;transition:opacity .2s;';
+    frmContainer.appendChild(sjFrame.frame);
+    sjFrames[tabId] = sjFrame;
 
-  frm.onload=()=>{
+    sjFrame.addEventListener('urlchange', e => {
+      const t=getTab(tabId);
+      if(!t)return;
+      t.url=e.url;
+      if(tabId===activeTab) document.getElementById('addr-input').value=e.url;
+    });
+  }
+
+  const sjFrame = sjFrames[tabId];
+
+  // Use a load listener approach via the underlying iframe
+  const iframe = sjFrame.frame;
+  const onLoad = () => {
     ldr.classList.add('hidden');
-    frm.style.opacity='1';
-    frm.style.transition='opacity .2s';
+    iframe.style.opacity='1';
     setStatus(url);
     try{
-      const t=frm.contentDocument?.title;
-      if(t&&t!=='about:blank'){tab.title=t;renderTabBar();}
+      const t=iframe.contentDocument?.title;
+      if(t&&t!=='about:blank'&&t!==''){tab.title=t;renderTabBar();}
     }catch(_){}
     try{
       tab.icon=`https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=16`;
       renderTabBar();
     }catch(_){}
+    iframe.removeEventListener('load', onLoad);
   };
-  frm.src=encoded;
+  iframe.addEventListener('load', onLoad);
+
+  sjFrame.go(url);
 }
 
 function goBack(){
-  const tab=getTab(activeTab);
-  if(!tab||tab.histIdx<=0)return;
-  tab.histIdx--;
-  const url=tab.history[tab.histIdx];
-  tab.url=url;
-  document.getElementById('addr-input').value=url;
-  _updateNavBtns(tab);
-  _loadUrl(tab.id,url);
+  const f=sjFrames[activeTab];
+  if(f) f.back(); 
 }
 function goFwd(){
-  const tab=getTab(activeTab);
-  if(!tab||tab.histIdx>=tab.history.length-1)return;
-  tab.histIdx++;
-  const url=tab.history[tab.histIdx];
-  tab.url=url;
-  document.getElementById('addr-input').value=url;
-  _updateNavBtns(tab);
-  _loadUrl(tab.id,url);
+  const f=sjFrames[activeTab];
+  if(f) f.forward();
 }
 function reloadTab(){
+  const f=sjFrames[activeTab];
   const tab=getTab(activeTab);
-  if(tab?.url)_loadUrl(tab.id,tab.url);
+  if(f) f.reload();
+  else if(tab?.url) _loadUrl(tab.id,tab.url);
 }
 function goHome(){
   const tab=getTab(activeTab);
@@ -644,10 +648,10 @@ function goHome(){
   _updateNavBtns(tab);
   const ntp=document.getElementById(`ntp-${tab.id}`);
   const fw =document.getElementById(`fw-${tab.id}`);
-  const frm=document.getElementById(`frm-${tab.id}`);
   if(ntp)ntp.style.display='flex';
   if(fw) fw.style.display='none';
-  if(frm)frm.src='about:blank';
+  const f=sjFrames[tab.id];
+  if(f) f.frame.style.opacity='0';
   setStatus("Evan's Sigma Proxy");
 }
 
