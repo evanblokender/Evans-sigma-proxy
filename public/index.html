@@ -1,364 +1,497 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Evan's Sigma Proxy</title>
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 
-    :root {
-      --bg: #1a1a2e;
-      --bar: #16213e;
-      --tab-bar: #0f3460;
-      --tab-active: #1a1a2e;
-      --tab-inactive: #0d2137;
-      --accent: #e94560;
-      --text: #e0e0ff;
-      --muted: #7a8ba8;
-      --border: rgba(255,255,255,0.07);
-      --btn-hover: rgba(255,255,255,0.08);
+    :root{
+      --space:   #04050f;
+      --deep:    #080c1a;
+      --panel:   #0b1120;
+      --tabbar:  #060a15;
+      --tab-on:  #0e1628;
+      --tab-off: #070c17;
+      --accent:  #7c3aed;
+      --accent2: #a855f7;
+      --glow:    #6d28d9;
+      --star1:   #c4b5fd;
+      --star2:   #818cf8;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --border:  rgba(124,58,237,0.18);
+      --glass:   rgba(124,58,237,0.07);
     }
 
-    html, body { height: 100%; width: 100%; overflow: hidden;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg); color: var(--text); user-select: none; }
+    html,body{height:100%;width:100%;overflow:hidden;
+      font-family:'Segoe UI',system-ui,sans-serif;
+      background:var(--space);color:var(--text);user-select:none;}
 
-    #browser { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-
-    /* TAB BAR */
-    #tab-bar {
-      display: flex; align-items: flex-end;
-      background: var(--tab-bar); padding: 6px 6px 0 6px;
-      gap: 2px; min-height: 38px; overflow-x: auto; scrollbar-width: none;
-    }
-    #tab-bar::-webkit-scrollbar { display: none; }
-
-    .tab {
-      display: flex; align-items: center; gap: 6px;
-      padding: 6px 10px 7px 10px;
-      background: var(--tab-inactive); border-radius: 8px 8px 0 0;
-      font-size: 12px; color: var(--muted); cursor: pointer;
-      min-width: 130px; max-width: 200px; flex-shrink: 0;
-      border: 1px solid var(--border); border-bottom: none;
-      transition: background 0.15s, color 0.15s;
-    }
-    .tab:hover { background: #142540; color: var(--text); }
-    .tab.active { background: var(--tab-active); color: var(--text); border-color: rgba(255,255,255,0.1); }
-    .tab-icon { font-size: 13px; flex-shrink: 0; }
-    .tab-title { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; }
-    .tab-close {
-      flex-shrink: 0; width: 16px; height: 16px; border-radius: 3px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; color: var(--muted); transition: background 0.1s, color 0.1s;
-    }
-    .tab-close:hover { background: rgba(255,255,255,0.15); color: var(--text); }
-
-    #new-tab-btn {
-      width: 28px; height: 28px; border-radius: 6px; background: transparent;
-      border: none; color: var(--muted); font-size: 20px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, color 0.15s; flex-shrink: 0; margin-bottom: 1px;
-    }
-    #new-tab-btn:hover { background: var(--btn-hover); color: var(--text); }
-
-    /* NAV BAR */
-    #nav-bar {
-      display: flex; align-items: center; gap: 4px;
-      background: var(--bar); padding: 6px 10px;
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-btn {
-      width: 30px; height: 30px; border-radius: 6px; background: transparent;
-      border: none; color: var(--muted); font-size: 16px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, color 0.15s; flex-shrink: 0;
-    }
-    .nav-btn:hover:not(:disabled) { background: var(--btn-hover); color: var(--text); }
-    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    #address-bar-wrap {
-      flex: 1; display: flex; align-items: center;
-      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0 10px; height: 30px;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    #address-bar-wrap:focus-within {
-      border-color: rgba(233,69,96,0.5); background: rgba(255,255,255,0.09);
-    }
-    #address-input {
-      flex: 1; background: transparent; border: none; outline: none;
-      color: var(--text); font-size: 13px; min-width: 0;
-    }
-    #address-input::placeholder { color: var(--muted); }
-
-    #go-btn {
-      width: 30px; height: 30px; border-radius: 6px; background: var(--accent);
-      border: none; color: white; font-size: 14px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, transform 0.1s; flex-shrink: 0;
-    }
-    #go-btn:hover { background: #ff6b84; transform: scale(1.05); }
-
-    /* CONTENT */
-    #content { flex: 1; position: relative; overflow: hidden; }
-
-    .tab-content { position: absolute; inset: 0; display: none; }
-    .tab-content.active { display: block; }
-
-    /* NEW TAB PAGE */
-    .ntp {
-      width: 100%; height: 100%; overflow-y: auto;
-      background: var(--bg);
-      display: flex; flex-direction: column; align-items: center;
-      padding: 60px 20px 40px; gap: 32px;
-    }
-    .ntp::before {
-      content: ''; position: fixed; inset: 0;
+    /* ── GALAXY BACKGROUND ── */
+    body::before{
+      content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       background:
-        radial-gradient(ellipse at 25% 40%, rgba(83,52,131,0.25) 0%, transparent 55%),
-        radial-gradient(ellipse at 75% 60%, rgba(233,69,96,0.12) 0%, transparent 55%);
-      pointer-events: none;
+        radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(109,40,217,.25) 0%,transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%,  rgba(168,85,247,.18) 0%,transparent 55%),
+        radial-gradient(ellipse 40% 40% at 60% 30%,  rgba(99,102,241,.12) 0%,transparent 50%),
+        radial-gradient(ellipse 100% 80% at 50% 50%, rgba(4,5,15,1) 0%,transparent 100%);
     }
-    .brand { text-align: center; position: relative; z-index: 1; }
-    .brand .sigma {
-      font-size: 52px; line-height: 1;
-      background: linear-gradient(135deg, #e94560, #533483);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      filter: drop-shadow(0 0 30px rgba(233,69,96,0.4));
-      animation: glow 3s ease-in-out infinite;
-    }
-    @keyframes glow {
-      0%,100% { filter: drop-shadow(0 0 20px rgba(233,69,96,0.3)); }
-      50%      { filter: drop-shadow(0 0 40px rgba(233,69,96,0.7)); }
-    }
-    .brand h1 {
-      font-size: 24px; font-weight: 800; margin-top: 4px;
-      background: linear-gradient(135deg, #e94560, #a78bfa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .brand p { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: .1em; text-transform: uppercase; }
+    /* Starfield canvas sits behind everything */
+    #stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
 
-    .ntp-search {
-      width: 100%; max-width: 540px; display: flex; gap: 8px; position: relative; z-index: 1;
-    }
-    .ntp-search input {
-      flex: 1; padding: 12px 16px; background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border); border-radius: 10px; color: var(--text);
-      font-size: 15px; outline: none; transition: border-color 0.2s, background 0.2s;
-    }
-    .ntp-search input:focus { border-color: rgba(233,69,96,0.5); background: rgba(255,255,255,0.09); }
-    .ntp-search input::placeholder { color: var(--muted); }
-    .ntp-search button {
-      padding: 12px 20px; background: linear-gradient(135deg, #e94560, #533483);
-      border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
-    }
-    .ntp-search button:hover { opacity: 0.9; transform: translateY(-1px); }
+    #browser{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;width:100vw;}
 
-    .quick-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-      width: 100%; max-width: 540px; position: relative; z-index: 1;
+    /* ── TAB BAR ── */
+    #tab-bar{
+      display:flex;align-items:flex-end;
+      background:var(--tabbar);
+      border-bottom:1px solid var(--border);
+      padding:6px 6px 0;gap:2px;min-height:40px;
+      overflow-x:auto;scrollbar-width:none;
+      position:relative;z-index:2;
     }
-    @media (max-width: 480px) { .quick-grid { grid-template-columns: repeat(3, 1fr); } }
-    .qi {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 14px 8px; background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border); border-radius: 12px;
-      cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s; text-align: center;
-    }
-    .qi:hover { background: rgba(233,69,96,0.1); border-color: rgba(233,69,96,0.3); transform: translateY(-2px); }
-    .qi .qi-icon { font-size: 22px; line-height: 1; }
-    .qi span { font-size: 11px; color: var(--muted); font-weight: 500; }
+    #tab-bar::-webkit-scrollbar{display:none;}
 
-    /* PROXY FRAME WRAPPER */
-    .frame-wrap { width: 100%; height: 100%; position: relative; }
-    .proxy-frame { width: 100%; height: 100%; border: none; background: white; display: block; }
+    .tab{
+      display:flex;align-items:center;gap:6px;
+      padding:7px 10px 8px;
+      background:var(--tab-off);
+      border-radius:8px 8px 0 0;
+      border:1px solid transparent;border-bottom:none;
+      font-size:12px;color:var(--muted);cursor:pointer;
+      min-width:130px;max-width:210px;flex-shrink:0;
+      transition:background .2s,color .2s,border-color .2s;
+      overflow:hidden;position:relative;
+    }
+    .tab:hover{background:#0d1525;color:var(--text);}
+    .tab.active{
+      background:var(--tab-on);color:var(--text);
+      border-color:var(--border);
+      box-shadow:0 0 12px rgba(124,58,237,.15) inset;
+    }
+    .tab-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+    .tab-fav{width:14px;height:14px;flex-shrink:0;border-radius:2px;object-fit:contain;}
+    .tab-fav-ph{width:14px;height:14px;flex-shrink:0;font-size:11px;display:flex;align-items:center;justify-content:center;}
+    .tab-x{
+      flex-shrink:0;width:16px;height:16px;border-radius:3px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;color:var(--muted);
+      transition:background .15s,color .15s;
+    }
+    .tab-x:hover{background:rgba(255,255,255,.12);color:var(--text);}
 
-    /* LOADING */
-    .loader {
-      position: absolute; inset: 0; background: var(--bg);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10;
+    #new-tab-btn{
+      width:30px;height:30px;border-radius:7px;
+      background:transparent;border:none;color:var(--muted);
+      font-size:20px;cursor:pointer;flex-shrink:0;margin-bottom:2px;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s,color .15s;overflow:hidden;position:relative;
     }
-    .loader.hidden { display: none; }
-    .spinner {
-      width: 36px; height: 36px; border: 3px solid rgba(233,69,96,0.2);
-      border-top-color: #e94560; border-radius: 50%; animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loader p { color: var(--muted); font-size: 13px; }
+    #new-tab-btn:hover{background:var(--glass);color:var(--text);}
 
-    /* STATUS */
-    #status-bar {
-      background: var(--bar); border-top: 1px solid var(--border);
-      padding: 2px 10px; font-size: 11px; color: var(--muted);
-      display: flex; align-items: center; gap: 8px;
+    /* ── NAV BAR ── */
+    #nav-bar{
+      display:flex;align-items:center;gap:5px;
+      background:var(--panel);
+      border-bottom:1px solid var(--border);
+      padding:7px 10px;
+      position:relative;z-index:2;
     }
-    .sdot {
-      width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
-      box-shadow: 0 0 5px #4ade80; animation: blink 2s ease-in-out infinite;
+
+    /* Ripple button base */
+    .ripple-btn{
+      position:relative;overflow:hidden;
+      width:32px;height:32px;border-radius:8px;
+      background:transparent;border:none;
+      color:var(--muted);font-size:16px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s,color .15s,box-shadow .2s;
+      flex-shrink:0;
     }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .ripple-btn:hover:not(:disabled){
+      background:var(--glass);color:var(--text);
+      box-shadow:0 0 10px rgba(124,58,237,.25);
+    }
+    .ripple-btn:disabled{opacity:.28;cursor:not-allowed;}
+    .ripple-btn .ripple{
+      position:absolute;border-radius:50%;
+      background:rgba(168,85,247,.45);
+      transform:scale(0);pointer-events:none;
+      animation:ripple-anim .55s ease-out forwards;
+    }
+    @keyframes ripple-anim{
+      to{transform:scale(4);opacity:0;}
+    }
+
+    #addr-wrap{
+      flex:1;display:flex;align-items:center;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:9px;padding:0 11px;height:32px;
+      transition:border-color .2s,background .2s,box-shadow .2s;
+    }
+    #addr-wrap:focus-within{
+      border-color:rgba(124,58,237,.6);
+      background:rgba(124,58,237,.06);
+      box-shadow:0 0 14px rgba(124,58,237,.2);
+    }
+    #addr-input{
+      flex:1;background:transparent;border:none;outline:none;
+      color:var(--text);font-size:13px;min-width:0;
+    }
+    #addr-input::placeholder{color:var(--muted);}
+
+    #go-btn{
+      position:relative;overflow:hidden;
+      width:32px;height:32px;border-radius:8px;
+      background:linear-gradient(135deg,#7c3aed,#a855f7);
+      border:none;color:white;font-size:15px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;
+      transition:box-shadow .2s,transform .1s;
+    }
+    #go-btn:hover{
+      box-shadow:0 0 18px rgba(124,58,237,.55);
+      transform:scale(1.05);
+    }
+    #go-btn .ripple{
+      position:absolute;border-radius:50%;
+      background:rgba(255,255,255,.4);
+      transform:scale(0);pointer-events:none;
+      animation:ripple-anim .55s ease-out forwards;
+    }
+
+    /* ── CONTENT ── */
+    #content{flex:1;position:relative;overflow:hidden;z-index:1;}
+    .tab-content{position:absolute;inset:0;display:none;}
+    .tab-content.active{display:block;}
+
+    /* ── NEW TAB PAGE ── */
+    .ntp{
+      width:100%;height:100%;overflow-y:auto;
+      background:transparent;
+      display:flex;flex-direction:column;align-items:center;
+      padding:56px 20px 40px;gap:28px;
+    }
+
+    .brand{text-align:center;position:relative;z-index:1;}
+    .brand .sigma{
+      font-size:58px;line-height:1;
+      background:linear-gradient(135deg,#a855f7,#818cf8,#c084fc);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      filter:drop-shadow(0 0 35px rgba(168,85,247,.6));
+      animation:nebula 4s ease-in-out infinite;
+    }
+    @keyframes nebula{
+      0%,100%{filter:drop-shadow(0 0 25px rgba(168,85,247,.4));}
+      50%     {filter:drop-shadow(0 0 55px rgba(168,85,247,.85));}
+    }
+    .brand h1{
+      font-size:26px;font-weight:800;margin-top:6px;
+      background:linear-gradient(135deg,#c084fc,#818cf8);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      letter-spacing:-.3px;
+    }
+    .brand p{font-size:11px;color:var(--muted);margin-top:5px;letter-spacing:.12em;text-transform:uppercase;}
+
+    /* NTP search */
+    .ntp-search{
+      width:100%;max-width:560px;display:flex;gap:8px;position:relative;z-index:1;
+    }
+    .ntp-search input{
+      flex:1;padding:12px 16px;
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--border);border-radius:11px;
+      color:var(--text);font-size:14px;outline:none;
+      transition:border-color .2s,background .2s,box-shadow .2s;
+    }
+    .ntp-search input:focus{
+      border-color:rgba(124,58,237,.6);
+      background:rgba(124,58,237,.07);
+      box-shadow:0 0 18px rgba(124,58,237,.22);
+    }
+    .ntp-search input::placeholder{color:var(--muted);}
+    .ntp-search button{
+      position:relative;overflow:hidden;
+      padding:12px 22px;
+      background:linear-gradient(135deg,#7c3aed,#a855f7);
+      border:none;border-radius:11px;
+      color:white;font-size:14px;font-weight:600;cursor:pointer;
+      transition:box-shadow .2s,transform .1s;
+    }
+    .ntp-search button:hover{
+      box-shadow:0 0 20px rgba(124,58,237,.5);
+      transform:translateY(-1px);
+    }
+    .ntp-search button .ripple{
+      position:absolute;border-radius:50%;
+      background:rgba(255,255,255,.35);
+      transform:scale(0);pointer-events:none;
+      animation:ripple-anim .55s ease-out forwards;
+    }
+
+    /* Quick grid */
+    .q-grid{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+      width:100%;max-width:560px;position:relative;z-index:1;
+    }
+    @media(max-width:480px){.q-grid{grid-template-columns:repeat(3,1fr);}}
+    .qi{
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:14px 8px;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);border-radius:13px;
+      cursor:pointer;
+      transition:background .15s,border-color .2s,transform .12s,box-shadow .2s;
+      position:relative;overflow:hidden;
+    }
+    .qi:hover{
+      background:rgba(124,58,237,.12);
+      border-color:rgba(124,58,237,.4);
+      transform:translateY(-3px);
+      box-shadow:0 6px 20px rgba(124,58,237,.2);
+    }
+    .qi .qi-icon{font-size:22px;line-height:1;}
+    .qi span{font-size:11px;color:var(--muted);font-weight:500;}
+    .qi .ripple{
+      position:absolute;border-radius:50%;
+      background:rgba(168,85,247,.3);
+      transform:scale(0);pointer-events:none;
+      animation:ripple-anim .55s ease-out forwards;
+    }
+
+    /* Frame area */
+    .frame-wrap{width:100%;height:100%;position:relative;}
+    .proxy-frame{width:100%;height:100%;border:none;background:white;display:block;}
+
+    /* Loader */
+    .loader{
+      position:absolute;inset:0;
+      background:var(--deep);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+      z-index:10;
+    }
+    .loader.hidden{display:none;}
+    .galaxy-spinner{
+      width:44px;height:44px;position:relative;
+    }
+    .galaxy-spinner::before,.galaxy-spinner::after{
+      content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent;
+    }
+    .galaxy-spinner::before{
+      border-top-color:#a855f7;border-right-color:#7c3aed;
+      animation:spin .8s linear infinite;
+    }
+    .galaxy-spinner::after{
+      inset:6px;border-bottom-color:#818cf8;border-left-color:#c084fc;
+      animation:spin .6s linear infinite reverse;
+    }
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loader p{color:var(--muted);font-size:13px;letter-spacing:.04em;}
+
+    /* Status bar */
+    #status-bar{
+      background:var(--tabbar);border-top:1px solid var(--border);
+      padding:3px 12px;font-size:11px;color:var(--muted);
+      display:flex;align-items:center;gap:8px;position:relative;z-index:2;
+    }
+    .sdot{
+      width:6px;height:6px;border-radius:50%;background:#4ade80;
+      box-shadow:0 0 6px #4ade80;animation:blink 2.5s ease-in-out infinite;flex-shrink:0;
+    }
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
   </style>
 </head>
 <body>
+
+<!-- Starfield -->
+<canvas id="stars"></canvas>
+
 <div id="browser">
   <div id="tab-bar">
     <button id="new-tab-btn" onclick="newTab()" title="New tab">+</button>
   </div>
   <div id="nav-bar">
-    <button class="nav-btn" id="btn-back"    title="Back"    onclick="goBack()"    disabled>&#8592;</button>
-    <button class="nav-btn" id="btn-forward" title="Forward" onclick="goForward()" disabled>&#8594;</button>
-    <button class="nav-btn" id="btn-reload"  title="Reload"  onclick="reloadTab()">&#8635;</button>
-    <button class="nav-btn" id="btn-home"    title="Home"    onclick="goHome()">⌂</button>
-    <div id="address-bar-wrap">
-      <input id="address-input" type="text" placeholder="Search or enter a URL..."
+    <button class="ripple-btn" id="btn-back"    title="Back"    onclick="goBack()"    disabled>&#8592;</button>
+    <button class="ripple-btn" id="btn-fwd"     title="Forward" onclick="goFwd()"     disabled>&#8594;</button>
+    <button class="ripple-btn" id="btn-reload"  title="Reload"  onclick="reloadTab()">&#8635;</button>
+    <button class="ripple-btn" id="btn-home"    title="Home"    onclick="goHome()">⌂</button>
+    <div id="addr-wrap">
+      <input id="addr-input" type="text" placeholder="Search Google or enter a URL..."
         autocomplete="off" spellcheck="false"
-        onkeydown="if(event.key==='Enter') navigate()" />
+        onkeydown="if(event.key==='Enter')navigate()"/>
     </div>
     <button id="go-btn" onclick="navigate()" title="Go">→</button>
   </div>
   <div id="content"></div>
   <div id="status-bar">
     <div class="sdot"></div>
-    <span id="status-text">Initializing Scramjet...</span>
+    <span id="status-txt">Initializing Scramjet...</span>
   </div>
 </div>
 
-<script src="/scram/scramjet.all.js"></script>
+<!-- Load order matters: BareMux → transport → Scramjet all -->
 <script src="/baremux/index.js"></script>
 <script src="/epoxy/index.js"></script>
+<script src="/scram/scramjet.all.js"></script>
 
 <script>
-// ── SCRAMJET INIT ──────────────────────────────
+// ═══════════════════════════════════════════
+// STARFIELD
+// ═══════════════════════════════════════════
+(function(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    stars = Array.from({length:180},()=>({
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: Math.random()*1.4+.2,
+      a: Math.random(),
+      s: Math.random()*.003+.001,
+      d: Math.random()<.5?1:-1
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(const s of stars){
+      s.a+=s.s*s.d;
+      if(s.a>=1||s.a<=0)s.d*=-1;
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(196,181,253,${s.a.toFixed(2)})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  resize();
+  window.addEventListener('resize',resize);
+  draw();
+})();
+
+// ═══════════════════════════════════════════
+// RIPPLE
+// ═══════════════════════════════════════════
+function addRipple(el, e){
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 2;
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  el.appendChild(r);
+  r.addEventListener('animationend', ()=>r.remove());
+}
+document.addEventListener('click', e=>{
+  const el = e.target.closest('.ripple-btn, #go-btn, .ntp-search button, .qi');
+  if(el) addRipple(el, e);
+});
+
+// ═══════════════════════════════════════════
+// SCRAMJET INIT
+// ═══════════════════════════════════════════
 const { ScramjetController } = $scramjetLoadController();
 
 const scramjet = new ScramjetController({
-  prefix: "/scramjet/",
   files: {
     wasm: "/scram/scramjet.wasm.wasm",
     all:  "/scram/scramjet.all.js",
     sync: "/scram/scramjet.sync.js",
-  },
+  }
 });
 
 let sjReady = false;
 
-scramjet.init().then(() => {
+// Register SW then init scramjet
+navigator.serviceWorker.register("/sw.js").then(reg => {
+  console.log("SW registered:", reg.scope);
+  return scramjet.init();
+}).then(() => {
   sjReady = true;
   setStatus("Scramjet ready ✓");
-}).catch(e => {
-  setStatus("SW error — try refreshing: " + e.message);
-  console.error("Scramjet init failed:", e);
+}).catch(err => {
+  console.error("Scramjet init error:", err);
+  setStatus("SW error — try refreshing");
 });
 
-// BareMux transport (Wisp)
-const wispUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
+// BareMux transport
+const wispProto = location.protocol === "https:" ? "wss" : "ws";
+const wispUrl   = `${wispProto}://${location.host}/wisp/`;
 const conn = new BareMux.BareMuxConnection("/baremux/worker.js");
 conn.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
 
-// ── TAB STATE ──────────────────────────────────
-let tabs      = [];
-let activeTab = null;
-let tabCounter = 0;
+// ═══════════════════════════════════════════
+// TAB STATE
+// ═══════════════════════════════════════════
+let tabs = [], activeTab = null, tabCounter = 0;
 
-function getTab(id) { return tabs.find(t => t.id === id); }
+function getTab(id){ return tabs.find(t=>t.id===id); }
 
-function newTab(url) {
+function newTab(url){
   const id = ++tabCounter;
-  const tab = { id, title: "New Tab", icon: "🌐", url: "", sjFrame: null, history: [], histIdx: -1 };
-  tabs.push(tab);
-  _createTabDOM(tab);
+  tabs.push({ id, title:"New Tab", icon:null, url:"", history:[], histIdx:-1 });
+  _createTabDOM(id);
   renderTabBar();
   switchTab(id);
-  if (url) navigateTo(url);
+  if(url) navigateTo(url);
 }
 
-function closeTab(id, e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  const idx = tabs.findIndex(t => t.id === id);
-  if (idx === -1) return;
-  // Clean up scramjet frame
-  const tab = tabs[idx];
-  if (tab.sjFrame) { try { tab.sjFrame.frame.remove(); } catch(_) {} }
+function closeTab(id, e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  const idx = tabs.findIndex(t=>t.id===id);
+  if(idx===-1)return;
   document.getElementById(`tc-${id}`)?.remove();
-  tabs.splice(idx, 1);
-  if (tabs.length === 0) { newTab(); return; }
-  if (activeTab === id) switchTab(tabs[Math.min(idx, tabs.length - 1)].id);
+  tabs.splice(idx,1);
+  if(tabs.length===0){newTab();return;}
+  if(activeTab===id) switchTab(tabs[Math.min(idx,tabs.length-1)].id);
   else renderTabBar();
 }
 
-function switchTab(id) {
-  activeTab = id;
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id === `tc-${id}`));
-  const tab = getTab(id);
-  if (tab) {
-    document.getElementById('address-input').value = tab.url || '';
+function switchTab(id){
+  activeTab=id;
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.toggle('active',el.id===`tc-${id}`));
+  const tab=getTab(id);
+  if(tab){
+    document.getElementById('addr-input').value=tab.url||'';
     _updateNavBtns(tab);
   }
   renderTabBar();
 }
 
-function _updateNavBtns(tab) {
-  document.getElementById('btn-back').disabled    = tab.histIdx <= 0;
-  document.getElementById('btn-forward').disabled = tab.histIdx >= tab.history.length - 1;
+function _updateNavBtns(tab){
+  document.getElementById('btn-back').disabled = tab.histIdx<=0;
+  document.getElementById('btn-fwd').disabled  = tab.histIdx>=tab.history.length-1;
 }
 
-// ── TAB BAR RENDER ─────────────────────────────
-function renderTabBar() {
-  const bar = document.getElementById('tab-bar');
-  bar.querySelectorAll('.tab').forEach(el => el.remove());
-  const btn = document.getElementById('new-tab-btn');
-  tabs.forEach(tab => {
-    const el = document.createElement('div');
-    el.className = 'tab' + (tab.id === activeTab ? ' active' : '');
-    el.dataset.id = tab.id;
-    el.onclick = () => switchTab(tab.id);
-    el.innerHTML = `
-      <span class="tab-icon">${tab.icon || '🌐'}</span>
-      <span class="tab-title">${_esc(tab.title)}</span>
-      <span class="tab-close" data-id="${tab.id}">✕</span>`;
-    el.querySelector('.tab-close').onclick = (e) => closeTab(tab.id, e);
-    bar.insertBefore(el, btn);
+// ═══════════════════════════════════════════
+// RENDER TAB BAR
+// ═══════════════════════════════════════════
+function renderTabBar(){
+  const bar=document.getElementById('tab-bar');
+  bar.querySelectorAll('.tab').forEach(el=>el.remove());
+  const btn=document.getElementById('new-tab-btn');
+  tabs.forEach(tab=>{
+    const el=document.createElement('div');
+    el.className='tab'+(tab.id===activeTab?' active':'');
+    el.dataset.id=tab.id;
+    el.onclick=()=>switchTab(tab.id);
+    const fav = tab.icon
+      ? `<img class="tab-fav" src="${tab.icon}" onerror="this.style.display='none'">`
+      : `<span class="tab-fav-ph">🌐</span>`;
+    el.innerHTML=`${fav}<span class="tab-title">${_esc(tab.title)}</span><span class="tab-x">✕</span>`;
+    el.querySelector('.tab-x').onclick=ev=>closeTab(tab.id,ev);
+    bar.insertBefore(el,btn);
   });
 }
 
-// ── TAB DOM ────────────────────────────────────
-function _createTabDOM(tab) {
-  const content = document.getElementById('content');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'tab-content';
-  wrapper.id = `tc-${tab.id}`;
-
-  // New tab page
-  wrapper.innerHTML = `
-    <div class="ntp" id="ntp-${tab.id}">
-      <div class="brand">
-        <div class="sigma">Σ</div>
-        <h1>Evan's Sigma Proxy</h1>
-        <p>Powered by Scramjet · Stay Unblocked</p>
-      </div>
-      <div class="ntp-search">
-        <input id="ntpin-${tab.id}" type="text" placeholder="Search Google or enter URL..."
-          autocomplete="off" spellcheck="false"
-          onkeydown="if(event.key==='Enter') ntpGo(${tab.id})" />
-        <button onclick="ntpGo(${tab.id})">Go →</button>
-      </div>
-      <div class="quick-grid">
-        ${_quickLinks(tab.id)}
-      </div>
-    </div>
-    <div class="frame-wrap" id="fw-${tab.id}" style="display:none; position:absolute; inset:0;">
-      <div class="loader" id="loader-${tab.id}">
-        <div class="spinner"></div>
-        <p>Loading via Scramjet...</p>
-      </div>
-    </div>`;
-
-  content.appendChild(wrapper);
-}
-
-const QUICK = [
+// ═══════════════════════════════════════════
+// TAB DOM
+// ═══════════════════════════════════════════
+const QUICK=[
   ['🔍','Google','https://www.google.com'],
   ['▶️','YouTube','https://www.youtube.com'],
   ['🎮','CoolMath','https://www.coolmathgames.com'],
@@ -373,148 +506,172 @@ const QUICK = [
   ['🕹️','Miniclip','https://www.miniclip.com'],
 ];
 
-function _quickLinks(tabId) {
-  return QUICK.map(([icon, name, url]) =>
-    `<div class="qi" onclick="navigateTo('${url}')">
-      <span class="qi-icon">${icon}</span><span>${name}</span>
-    </div>`
-  ).join('');
+function _createTabDOM(id){
+  const content=document.getElementById('content');
+  const w=document.createElement('div');
+  w.className='tab-content';w.id=`tc-${id}`;
+  w.innerHTML=`
+    <div class="ntp" id="ntp-${id}">
+      <div class="brand">
+        <div class="sigma">Σ</div>
+        <h1>Evan's Sigma Proxy</h1>
+        <p>Powered by Scramjet · Stay Unblocked</p>
+      </div>
+      <div class="ntp-search">
+        <input id="ntpin-${id}" type="text" placeholder="Search Google or enter URL..."
+          autocomplete="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter')ntpGo(${id})"/>
+        <button onclick="ntpGo(${id})">Go →</button>
+      </div>
+      <div class="q-grid">
+        ${QUICK.map(([i,n,u])=>`<div class="qi" onclick="navigateTo('${u}')"><span class="qi-icon">${i}</span><span>${n}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="frame-wrap" id="fw-${id}" style="display:none;position:absolute;inset:0;">
+      <div class="loader" id="ldr-${id}">
+        <div class="galaxy-spinner"></div>
+        <p id="ldr-txt-${id}">Routing through Scramjet...</p>
+      </div>
+      <iframe class="proxy-frame" id="frm-${id}"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation"
+      ></iframe>
+    </div>`;
+  content.appendChild(w);
 }
 
-// ── NAVIGATION ─────────────────────────────────
-function ntpGo(tabId) {
-  const input = document.getElementById(`ntpin-${tabId}`);
-  if (input?.value) navigateTo(input.value, tabId);
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function ntpGo(id){
+  const v=document.getElementById(`ntpin-${id}`)?.value;
+  if(v) navigateTo(v,id);
+}
+function navigate(){
+  navigateTo(document.getElementById('addr-input').value);
 }
 
-function navigate() {
-  navigateTo(document.getElementById('address-input').value);
-}
+function navigateTo(raw, tabId){
+  tabId=tabId??activeTab;
+  const tab=getTab(tabId);
+  if(!tab||!raw?.trim())return;
 
-function navigateTo(raw, tabId) {
-  tabId = tabId ?? activeTab;
-  const tab = getTab(tabId);
-  if (!tab || !raw?.trim()) return;
-
-  let url = raw.trim();
-  if (url.includes(' ') || !url.includes('.')) {
-    url = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
-  } else if (!/^https?:\/\//i.test(url)) {
-    url = 'https://' + url;
+  let url=raw.trim();
+  if(url.includes(' ')||(!url.includes('.')&&!url.startsWith('http'))){
+    url=`https://www.google.com/search?q=${encodeURIComponent(url)}`;
+  }else if(!/^https?:\/\//i.test(url)){
+    url='https://'+url;
   }
 
-  tab.url = url;
-  tab.history = tab.history.slice(0, tab.histIdx + 1);
+  tab.url=url;
+  tab.history=tab.history.slice(0,tab.histIdx+1);
   tab.history.push(url);
-  tab.histIdx = tab.history.length - 1;
-  document.getElementById('address-input').value = url;
+  tab.histIdx=tab.history.length-1;
+  document.getElementById('addr-input').value=url;
   _updateNavBtns(tab);
   _loadUrl(tabId, url);
 }
 
-function _loadUrl(tabId, url) {
-  if (!sjReady) {
-    setStatus("Waiting for Scramjet to initialize...");
-    setTimeout(() => _loadUrl(tabId, url), 500);
+function _loadUrl(tabId, url){
+  if(!sjReady){
+    setStatus("Waiting for Scramjet...");
+    setTimeout(()=>_loadUrl(tabId,url), 600);
     return;
   }
+  const tab=getTab(tabId);
+  const ntp=document.getElementById(`ntp-${tabId}`);
+  const fw =document.getElementById(`fw-${tabId}`);
+  const ldr=document.getElementById(`ldr-${tabId}`);
+  const frm=document.getElementById(`frm-${tabId}`);
+  if(!frm)return;
 
-  const tab     = getTab(tabId);
-  const ntp     = document.getElementById(`ntp-${tabId}`);
-  const fw      = document.getElementById(`fw-${tabId}`);
-  const loader  = document.getElementById(`loader-${tabId}`);
-
-  // Show frame wrapper, hide NTP
-  ntp.style.display = 'none';
-  fw.style.display = 'block';
-  loader.classList.remove('hidden');
-
+  ntp.style.display='none';
+  fw.style.display='block';
+  ldr.classList.remove('hidden');
+  frm.style.opacity='0';
   setStatus(`Loading: ${url}`);
 
-  // Create or reuse scramjet frame
-  if (!tab.sjFrame) {
-    tab.sjFrame = scramjet.createFrame();
-    tab.sjFrame.frame.style.cssText = 'width:100%;height:100%;border:none;background:white;display:block;';
-    fw.appendChild(tab.sjFrame.frame);
-  }
+  // Use scramjet.encodeUrl to get the proxied URL, set on iframe src
+  let encoded;
+  try{ encoded=scramjet.encodeUrl(url); }
+  catch(e){ console.error("encodeUrl failed:",e); setStatus("Encode error: "+e.message); return; }
 
-  tab.sjFrame.frame.onload = () => {
-    loader.classList.add('hidden');
+  frm.onload=()=>{
+    ldr.classList.add('hidden');
+    frm.style.opacity='1';
+    frm.style.transition='opacity .2s';
     setStatus(url);
-    // Update tab title
-    try {
-      const t = tab.sjFrame.frame.contentDocument?.title;
-      if (t) { tab.title = t; renderTabBar(); }
-    } catch(_) {}
-    // Favicon from google
-    try {
-      const domain = new URL(url).hostname;
-      tab.icon = `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=16" style="width:14px;height:14px;border-radius:2px;" onerror="this.outerHTML='🌐'">`;
+    try{
+      const t=frm.contentDocument?.title;
+      if(t&&t!=='about:blank'){tab.title=t;renderTabBar();}
+    }catch(_){}
+    try{
+      tab.icon=`https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=16`;
       renderTabBar();
-    } catch(_) {}
+    }catch(_){}
   };
-
-  tab.sjFrame.navigate(url);
+  frm.src=encoded;
 }
 
-function goBack() {
-  const tab = getTab(activeTab);
-  if (!tab || tab.histIdx <= 0) return;
+function goBack(){
+  const tab=getTab(activeTab);
+  if(!tab||tab.histIdx<=0)return;
   tab.histIdx--;
-  const url = tab.history[tab.histIdx];
-  tab.url = url;
-  document.getElementById('address-input').value = url;
+  const url=tab.history[tab.histIdx];
+  tab.url=url;
+  document.getElementById('addr-input').value=url;
   _updateNavBtns(tab);
-  _loadUrl(tab.id, url);
+  _loadUrl(tab.id,url);
 }
-
-function goForward() {
-  const tab = getTab(activeTab);
-  if (!tab || tab.histIdx >= tab.history.length - 1) return;
+function goFwd(){
+  const tab=getTab(activeTab);
+  if(!tab||tab.histIdx>=tab.history.length-1)return;
   tab.histIdx++;
-  const url = tab.history[tab.histIdx];
-  tab.url = url;
-  document.getElementById('address-input').value = url;
+  const url=tab.history[tab.histIdx];
+  tab.url=url;
+  document.getElementById('addr-input').value=url;
   _updateNavBtns(tab);
-  _loadUrl(tab.id, url);
+  _loadUrl(tab.id,url);
 }
-
-function reloadTab() {
-  const tab = getTab(activeTab);
-  if (!tab || !tab.url) return;
-  if (tab.sjFrame) tab.sjFrame.navigate(tab.url);
-  else _loadUrl(tab.id, tab.url);
+function reloadTab(){
+  const tab=getTab(activeTab);
+  if(tab?.url)_loadUrl(tab.id,tab.url);
 }
-
-function goHome() {
-  const tab = getTab(activeTab);
-  if (!tab) return;
-  tab.url = '';
-  document.getElementById('address-input').value = '';
+function goHome(){
+  const tab=getTab(activeTab);
+  if(!tab)return;
+  tab.url='';
+  document.getElementById('addr-input').value='';
   _updateNavBtns(tab);
-  document.getElementById(`ntp-${tab.id}`).style.display = 'flex';
-  document.getElementById(`fw-${tab.id}`).style.display  = 'none';
-  if (tab.sjFrame) tab.sjFrame.frame.src = 'about:blank';
+  const ntp=document.getElementById(`ntp-${tab.id}`);
+  const fw =document.getElementById(`fw-${tab.id}`);
+  const frm=document.getElementById(`frm-${tab.id}`);
+  if(ntp)ntp.style.display='flex';
+  if(fw) fw.style.display='none';
+  if(frm)frm.src='about:blank';
   setStatus("Evan's Sigma Proxy");
 }
 
-// ── UTILS ──────────────────────────────────────
-function setStatus(msg) {
-  const el = document.getElementById('status-text');
-  if (el) el.textContent = msg;
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function setStatus(msg){
+  const el=document.getElementById('status-txt');
+  if(el)el.textContent=msg;
 }
-function _esc(s) {
+function _esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // Keyboard shortcuts
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === 't') { e.preventDefault(); newTab(); }
-  if (e.ctrlKey && e.key === 'w') { e.preventDefault(); closeTab(activeTab); }
-  if (e.ctrlKey && e.key === 'l') { e.preventDefault(); const i = document.getElementById('address-input'); i.focus(); i.select(); }
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.key==='t'){e.preventDefault();newTab();}
+  if(e.ctrlKey&&e.key==='w'){e.preventDefault();closeTab(activeTab);}
+  if(e.ctrlKey&&e.key==='l'){e.preventDefault();const i=document.getElementById('addr-input');i.focus();i.select();}
 });
 
-// ── BOOT ───────────────────────────────────────
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
 newTab();
 </script>
 </body>
