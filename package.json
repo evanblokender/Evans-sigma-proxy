@@ -2,19 +2,17 @@
   "name": "evans-sigma-proxy",
   "version": "1.0.0",
   "description": "Evan's Sigma Proxy - Browser UI powered by Scramjet",
-  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js"
   },
   "dependencies": {
-    "fastify": "^5.4.0",
-    "@fastify/static": "^8.2.0",
-    "@mercuryworkshop/bare-mux": "^2.1.7",
-    "@mercuryworkshop/libcurl-transport": "^1.5.2",
+    "@mercuryworkshop/bare-mux": "^2.0.4",
+    "@mercuryworkshop/epoxy-transport": "^2.1.1",
+    "@mercuryworkshop/libcurl-transport": "^1.0.4",
     "@mercuryworkshop/scramjet": "https://github.com/MercuryWorkshop/scramjet/releases/download/latest/mercuryworkshop-scramjet-2.0.0-alpha.tgz",
     "@mercuryworkshop/wisp-js": "^0.4.1",
-    "ws": "^8.18.3"
+    "express": "^4.18.2"
   },
   "engines": {
     "node": ">=20"
